@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lighthouse Weather</title>
+    <!-- Tailwind CSS for styling --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- html2canvas library for downloading the graphic --><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* Custom font and styles */
+        /* --- White line fix --- */
+        html, body {
+            overflow: hidden; /* Prevents tiny scrollbars that might be captured */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Ensure the container is centered */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #111827; /* Dark background for contrast */
+        }
+        
+        /* --- FINAL STRUCTURE --- */
+        /* This wrapper now holds the background image and controls the layout */
+        .aspect-ratio-wrapper {
+            width: 95vw; /* Use 95% of the viewport width */
+            max-width: 1280px; /* Set a max width for large screens */
+            aspect-ratio: 16 / 9; /* The magic property for the aspect ratio */
+            margin: auto;
+            display: flex;
+            flex-direction: column; /* Stack header and main content */
+            
+            /* The background image is now on the main container with a darker BLUE overlay */
+            background-image: linear-gradient(rgba(23, 37, 84, 0.7), rgba(23, 37, 84, 0.7)), url('background.png');
+            background-size: cover;
+            background-position: center;
+            
+            /* --- White line fix: Adjusted padding --- */
+            padding-top: 49px; /* Reduced by 1px to avoid render gap */
+        }
+
+        /* This container now has the padding to indent the forecast table */
+        .weather-container {
+            flex-grow: 1; /* Make the container fill the remaining space */
+            display: flex; /* Use flexbox to center the content */
+            align-items: center; /* Vertically center */
+            justify-content: center; /* Horizontally center */
+            width: 100%;
+            /* Padding is now here to only affect the forecast table */
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-bottom: 2rem;
+            padding-top: 2rem; /* This adds the space above the table */
+        }
+        
+        /* --- SIMPLIFIED HEADER STYLES --- */
+        .header-image-container {
+            background-image: url('header-background.png'); /* Your new banner image */
+            background-size: 100% 100%; /* Stretch to fill the container */
+            background-position: center; 
+            height: 100px; /* Adjust this height to match your image's proportions */
+            position: relative; /* This is crucial for positioning the logo */
+            flex-shrink: 0;
+            /* --- White line fix: ensure no border --- */
+            border: none;
+            outline: none;
+        }
+
+        .logo-overlay {
+            position: absolute;
+            top: 50%; /* Center vertically */
+            /* ************HERE********** Final logo position */
+            left: calc(2rem - 20px); /* Final position as requested */
+            transform: translateY(-50%); /* Fine-tune vertical centering */
+            height: 80px; /* Adjust the size of the logo as needed */
+            width: auto;
+        }
+
+        /* --- UPDATED GRID ROW SIZING --- */
+        /* This sets proportional rows to make the middle section shorter */
+        #forecast-grid {
+            grid-template-rows: 1fr 2fr 1fr; /* Proportional rows */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="flex flex-col items-end">
+        <!-- *** REMOVED 'rounded-lg' CLASS HERE *** --><div id="capture" class="aspect-ratio-wrapper shadow-2xl overflow-hidden">
+            <!-- Header Section --><header class="header-image-container">
+                <!-- Using a PNG for the logo now --><img src="logo.png" alt="Anchor News Logo" class="logo-overlay">
+            </header>
+
+            <!-- Container for the forecast, which is now centered --><div class="weather-container">
+                <!-- The forecast grid itself, now at 85% width --><main id="forecast-grid" class="grid grid-cols-5 text-white w-[85%] h-full shadow-2xl border-2 border-gray-500">
+                    <!-- Weather data will be injected here by JavaScript --></main>
+            </div>
+        </div>
+        
+        <button id="download-btn" class="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
+            Download PNG
+        </button>
+    </div>
+
+
+<script>
+    // --- Weather Icon Paths (Matches your original app) ---
+    const weatherIcons = {
+        'cloudy': 'cloudy.png',
+        'partly-cloudy-rain': 'partly-cloudy-rain.png',
+        'rain': 'rain.png',
+        'thunder': 'thunder.png',
+        'partly-cloudy': 'partly-cloudy.png',
+        'sunny': 'sunny.png',
+        'snowy': 'snowy.png',
+        'windy': 'windy.png',
+        'fog': 'fog.png',
+        'sleet': 'sleet.png'
+    };
+
+    // --- Function to map NWS forecast conditions to your icon keys ---
+    function mapConditionToIconKey(shortForecast) {
+        const forecast = shortForecast.toLowerCase();
+
+        // Prioritize overall sky condition
+        if (forecast.includes('partly') || forecast.includes('mostly')) {
+            return 'partly-cloudy';
+        }
+        if (forecast.includes('sunny') || forecast.includes('clear')) {
+            return 'sunny';
+        }
+        if (forecast.includes('cloudy')) {
+            return 'cloudy';
+        }
+
+        // Check for precipitation
+        if (forecast.includes('thunder')) return 'thunder';
+        if (forecast.includes('rain') || forecast.includes('showers')) return 'rain';
+        if (forecast.includes('snow')) return 'snowy';
+        if (forecast.includes('sleet')) return 'sleet';
+        if (forecast.includes('windy')) return 'windy';
+        if (forecast.includes('fog')) return 'fog';
+
+        return 'sunny'; // Default
+    }
+
+    // --- Function to fetch weather for a FIXED location ---
+    async function getWeatherData() {
+        const latitude = 41.17;
+        const longitude = -111.97;
+
+        try {
+            // 1. Get the specific forecast URL
+            const pointsResponse = await fetch(`https://api.weather.gov/points/${latitude},${longitude}`);
+            if (!pointsResponse.ok) throw new Error('Could not fetch forecast location from NWS.');
+            const pointsData = await pointsResponse.json();
+            const forecastUrl = pointsData.properties.forecast;
+
+            // 2. Get the actual forecast data
+            const forecastResponse = await fetch(forecastUrl);
+            if (!forecastResponse.ok) throw new Error('Could not fetch the weather forecast data.');
+            const weatherData = await forecastResponse.json();
+
+            // 3. Process the data
+            const allPeriods = weatherData.properties.periods;
+            const forecastDays = [];
+
+            for (let i = 0; i < allPeriods.length && forecastDays.length < 5; i++) {
+                const currentPeriod = allPeriods[i];
+                if (currentPeriod.isDaytime) {
+                    
+                    // Get the short weekday name (e.g., "MON") from the start time
+                    const date = new Date(currentPeriod.startTime);
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+
+                    let dayData = {
+                        day: dayName,
+                        high: currentPeriod.temperature,
+                        low: 'N/A', 
+                        condition: mapConditionToIconKey(currentPeriod.shortForecast)
+                    };
+                    
+                    if (i + 1 < allPeriods.length && !allPeriods[i + 1].isDaytime) {
+                        dayData.low = allPeriods[i + 1].temperature;
+                    }
+                    forecastDays.push(dayData);
+                }
+            }
+            return forecastDays;
+
+        } catch (error) {
+            console.error("Weather Fetch Error:", error);
+            const forecastGrid = document.getElementById('forecast-grid');
+            if (forecastGrid) {
+                forecastGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 1rem; background-color: #fee2e2; color: #b91c1c;">${error.message}</div>`;
+            }
+            return null;
+        }
+    }
+
+    // --- Function to Populate the Forecast ---
+    function displayForecast(forecastData) {
+        if (!forecastData) return;
+        const forecastGrid = document.getElementById('forecast-grid');
+        if (!forecastGrid) {
+            console.error("Fatal Error: HTML element with id 'forecast-grid' not found.");
+            return;
+        }
+
+        let daysHTML = '';
+        let iconsHTML = '';
+        let tempsHTML = '';
+
+        forecastData.forEach((dayData, index) => {
+            const iconPath = weatherIcons[dayData.condition] || 'sunny.png';
+            const isLastColumn = index === forecastData.length - 1;
+            const borderClass = isLastColumn ? '' : 'border-r-2';
+
+            daysHTML += `
+                <div class="bg-white/50 text-blue-800 text-center flex items-center justify-center p-3 ${borderClass} border-b-2 border-gray-500">
+                    <h3 class="text-2xl font-bold">${dayData.day}</h3>
+                </div>
+            `;
+            iconsHTML += `
+                <!-- *** IMAGE STRETCH FIX: Increased container padding to p-4 *** -->
+                <div class="bg-blue-800 flex justify-center items-center ${borderClass} border-b-2 border-gray-500 p-4">
+                    <!-- *** IMAGE STRETCH FIX: Reverted to max-h-full to prevent stretching *** -->
+                    <img src="${iconPath}" alt="${dayData.condition}" class="max-h-full object-contain">
+                </div>
+            `;
+            tempsHTML += `
+                <div class="bg-blue-800 flex justify-center items-center ${borderClass} border-gray-500 p-3">
+                    <span class="text-5xl font-extrabold text-yellow-400">${dayData.high}°</span>
+                    <span class="text-2xl text-gray-300 ml-2">${dayData.low}°</span>
+                </div>
+            `;
+        });
+
+        forecastGrid.innerHTML = daysHTML + iconsHTML + tempsHTML;
+    }
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        const forecastGrid = document.getElementById('forecast-grid');
+        if (forecastGrid) {
+            forecastGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 1rem;">Fetching latest forecast...</div>`;
+        }
+
+        const realForecastData = await getWeatherData();
+        displayForecast(realForecastData);
+    });
+
+    // --- Download Button Functionality ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const downloadButton = document.getElementById('download-btn');
+        const captureElement = document.getElementById('capture');
+
+        if (downloadButton && captureElement) {
+            downloadButton.addEventListener('click', () => {
+                // Disable button to prevent multiple clicks
+                downloadButton.disabled = true;
+                downloadButton.textContent = 'Generating...';
+
+                html2canvas(captureElement, {
+                    useCORS: true, // For loading external images (if any)
+                    allowTaint: true,
+                    scale: 2 // Increase scale for better resolution
+                }).then(canvas => {
+                    // Create a link element
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = 'weather_forecast.png';
+                    
+                    // Programmatically click the link to trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Re-enable the button
+                    downloadButton.disabled = false;
+                    downloadButton.textContent = 'Download PNG';
+                    
+                }).catch(err => {
+                    console.error('Error generating canvas:', err);
+                    // Re-enable the button even if there's an error
+                    downloadButton.disabled = false;
+                    downloadButton.textContent = 'Download PNG';
+                    // You could show an error to the user here
+                });
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
+
