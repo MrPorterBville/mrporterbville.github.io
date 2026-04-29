@@ -49,7 +49,14 @@
         import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // PASTE YOUR CONFIG HERE
-        const firebaseConfig = { /* ... your config ... */ };
+        const firebaseConfig = {
+        apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
+        authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
+        projectId: "classroombuzzer-cfc2e",
+        storageBucket: "classroombuzzer-cfc2e.firebasestorage.app",
+        messagingSenderId: "95871964596",
+        appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
