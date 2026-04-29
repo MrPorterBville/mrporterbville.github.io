@@ -3,40 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Scoreboard</title>
+    <title>Teacher Scoreboard & Control</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; color: white; text-align: center; padding: 20px; }
-        .controls { margin-bottom: 30px; padding: 20px; background: #34495e; border-radius: 15px; }
         
+        .setup-box { 
+            background: #34495e; padding: 20px; border-radius: 15px; 
+            max-width: 600px; margin: 0 auto 20px auto; border-bottom: 4px solid #2c3e50;
+        }
+
+        .controls { margin-bottom: 30px; }
+        
+        input { 
+            padding: 12px; font-size: 16px; border-radius: 8px; border: none; 
+            width: 60%; margin-bottom: 10px; outline: none;
+        }
+
         button { 
-            padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; 
-            border: none; border-radius: 10px; margin: 10px; transition: 0.2s;
+            padding: 12px 25px; font-size: 16px; font-weight: bold; cursor: pointer; 
+            border: none; border-radius: 8px; transition: 0.2s; margin: 5px;
         }
         
-        #lockToggle { background: #27ae60; color: white; width: 250px; }
-        #resetBtn { background: #7f8c8d; color: white; }
+        #setTeams { background: #3498db; color: white; }
+        #setTeams:hover { background: #2980b9; }
+
+        #lockToggle { background: #27ae60; color: white; width: 250px; font-size: 20px; padding: 18px; }
+        #resetBtn { background: #95a5a6; color: white; font-size: 20px; padding: 18px; }
         
-        .winner-box { font-size: 48px; color: #f1c40f; margin: 20px 0; text-shadow: 0 0 10px rgba(241,196,15,0.5); }
+        .winner-box { font-size: 42px; color: #f1c40f; margin: 20px 0; min-height: 60px; }
         
         ul { list-style: none; padding: 0; max-width: 500px; margin: 0 auto; }
         li { 
-            background: #34495e; margin: 10px; padding: 15px; border-radius: 8px; 
-            display: flex; justify-content: space-between; font-size: 22px;
+            background: #34495e; margin: 10px; padding: 15px; border-radius: 10px; 
+            display: flex; justify-content: space-between; align-items: center; font-size: 22px;
+            border-left: 5px solid #7f8c8d;
         }
-        li:first-child { border: 2px solid #f1c40f; background: #4b6584; }
-        .rank { font-weight: bold; color: #bdc3c7; }
+        li:first-child { border-left: 5px solid #f1c40f; background: #4b6584; transform: scale(1.05); }
+        
+        .team-label { font-size: 14px; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; color: #bdc3c7; }
+        .rank { font-weight: bold; color: #f1c40f; margin-right: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>Buzzer Control Room</h1>
+    <div class="setup-box">
+        <h3>Game Setup</h3>
+        <input type="text" id="teamInput" placeholder="Team A, Team B, Team C">
+        <button id="setTeams">Update Team Names</button>
+        <p style="font-size: 12px; color: #bdc3c7;">Separate team names with commas</p>
+    </div>
 
     <div class="controls">
         <button id="lockToggle">UNLOCK BUZZERS</button>
-        <button id="resetBtn">RESET ALL</button>
+        <button id="resetBtn">RESET ROUND</button>
     </div>
 
     <div id="winner-display" class="winner-box">Waiting for buzzes...</div>
+    
     <ul id="buzzer-list"></ul>
 
     <script type="module">
@@ -45,12 +68,13 @@
 
         // --- PASTE YOUR CONFIG BELOW ---
         const firebaseConfig = {
-        apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
-        authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
-        projectId: "classroombuzzer-cfc2e",
-        storageBucket: "classroombuzzer-cfc2e.firebasestorage.app",
-        messagingSenderId: "95871964596",
-        appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_ID",
+            appId: "YOUR_APP_ID"
         };
         // -------------------------------
 
@@ -58,29 +82,40 @@
         const db = getDatabase(app);
         
         const lockRef = ref(db, 'settings/locked');
+        const teamRef = ref(db, 'settings/teams');
         const buzzRef = ref(db, 'buzzes/');
+        
         let isLocked = true;
 
-        // Toggle Lock/Unlock
+        // 1. Update Team Names in Firebase
+        document.getElementById('setTeams').onclick = () => {
+            const teamNames = document.getElementById('teamInput').value;
+            if(!teamNames) return alert("Enter some team names first!");
+            set(teamRef, teamNames);
+            alert("Teams sent to students!");
+        };
+
+        // 2. Toggle Lock/Unlock
         document.getElementById('lockToggle').onclick = () => {
             set(lockRef, !isLocked);
         };
 
-        // Reset Everything
+        // 3. Reset Round
         document.getElementById('resetBtn').onclick = () => {
             remove(buzzRef);
             set(lockRef, true);
         };
 
-        // Sync Lock Button UI
+        // 4. Sync UI with Lock Status
         onValue(lockRef, (snapshot) => {
-            isLocked = snapshot.val();
+            const val = snapshot.val();
+            isLocked = (val === null) ? true : val; // Default to locked if null
             const btn = document.getElementById('lockToggle');
             btn.innerText = isLocked ? "UNLOCK BUZZERS" : "LOCK BUZZERS";
             btn.style.background = isLocked ? "#27ae60" : "#e74c3c";
         });
 
-        // Watch the Scoreboard
+        // 5. Watch for incoming Buzzes
         onValue(buzzRef, (snapshot) => {
             const data = snapshot.val();
             const listElement = document.getElementById('buzzer-list');
@@ -88,12 +123,17 @@
             listElement.innerHTML = "";
 
             if (data) {
+                // Sort by the server timestamp
                 const sorted = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
-                winnerDisplay.innerText = `Winner: ${sorted[0][0]}`;
+                
+                winnerDisplay.innerHTML = `Winner: <span style="color:white">${sorted[0][0]}</span>`;
                 
                 sorted.forEach(([name, info], index) => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<span class="rank">#${index + 1}</span> <span>${name}</span>`;
+                    li.innerHTML = `
+                        <div><span class="rank">#${index + 1}</span> ${name}</div>
+                        <div class="team-label">${info.team || 'No Team'}</div>
+                    `;
                     listElement.appendChild(li);
                 });
             } else {

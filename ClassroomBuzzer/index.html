@@ -5,93 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Buzzer</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; margin: 0; overflow: hidden; }
-        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; }
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; }
         
-        input { 
-            padding: 15px; font-size: 18px; width: 80%; max-width: 300px; 
-            border-radius: 10px; border: none; margin-bottom: 20px; outline: none;
+        input, select { 
+            padding: 12px; font-size: 16px; width: 80%; max-width: 300px; 
+            border-radius: 8px; border: none; margin-bottom: 10px; 
         }
 
         #buzzer { 
-            width: 250px; height: 250px; border-radius: 50%; border: none;
-            font-size: 28px; font-weight: bold; color: white;
-            transition: all 0.2s ease; box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            background: #444; cursor: not-allowed; opacity: 0.6;
+            width: 220px; height: 220px; border-radius: 50%; border: none;
+            font-size: 24px; font-weight: bold; color: white;
+            transition: all 0.2s ease; background: #444; cursor: not-allowed;
         }
 
-        /* State: Unlocked (Ready to buzz) */
-        #buzzer.unlocked { background: #e74c3c; cursor: pointer; opacity: 1; box-shadow: 0 8px #c0392b; }
-        #buzzer.unlocked:active { box-shadow: 0 2px #c0392b; transform: translateY(4px); }
-
-        /* State: Buzzed (Success) */
-        #buzzer.buzzed { background: #2ecc71 !important; box-shadow: 0 0 30px #2ecc71; transform: scale(0.95); }
+        #buzzer.unlocked { background: #e74c3c; cursor: pointer; box-shadow: 0 8px #c0392b; }
+        #buzzer.penalty { background: #f39c12 !important; cursor: wait; opacity: 1; }
+        #buzzer.buzzed { background: #2ecc71 !important; box-shadow: 0 0 30px #2ecc71; }
         
-        #status-text { margin-top: 20px; font-size: 20px; height: 24px; color: #aaa; }
+        #status-text { margin-top: 15px; font-size: 18px; color: #f1c40f; font-weight: bold; }
+        #order-list { margin-top: 20px; text-align: left; background: #333; padding: 15px; border-radius: 10px; width: 80%; max-width: 300px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <input type="text" id="username" placeholder="Enter Your Name" maxlength="15">
+        <input type="text" id="username" placeholder="Your Name">
+        <select id="team-select">
+            <option value="">Select Team...</option>
+        </select>
+
         <button id="buzzer" disabled>LOCKED</button>
-        <div id="status-text">Wait for teacher to unlock...</div>
+        <div id="status-text">Wait for unlock...</div>
+
+        <div id="order-list">
+            <strong>Buzzer Order:</strong>
+            <div id="live-results"></div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // --- PASTE YOUR CONFIG BELOW ---
-        const firebaseConfig = {
-        apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
-        authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
-        projectId: "classroombuzzer-cfc2e",
-        storageBucket: "classroombuzzer-cfc2e.firebasestorage.app",
-        messagingSenderId: "95871964596",
-        appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
-        };
-        // -------------------------------
+        // PASTE YOUR CONFIG HERE
+        const firebaseConfig = { /* ... your config ... */ };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        
         const buzzerBtn = document.getElementById('buzzer');
         const statusText = document.getElementById('status-text');
+        const teamSelect = document.getElementById('team-select');
+        
+        let isLocked = true;
+        let penaltyActive = false;
 
-        // Listen for Lock/Unlock from Teacher
-        onValue(ref(db, 'settings/locked'), (snapshot) => {
-            const isLocked = snapshot.val();
-            if (isLocked) {
-                buzzerBtn.classList.remove('unlocked', 'buzzed');
-                buzzerBtn.disabled = true;
-                buzzerBtn.innerText = "LOCKED";
-                statusText.innerText = "Wait for teacher to unlock...";
-            } else {
-                buzzerBtn.classList.add('unlocked');
-                buzzerBtn.disabled = false;
-                buzzerBtn.innerText = "BUZZ!";
-                statusText.innerText = "READY!";
+        // 1. Sync Team Names
+        onValue(ref(db, 'settings/teams'), (snapshot) => {
+            const teams = snapshot.val();
+            teamSelect.innerHTML = '<option value="">Select Team...</option>';
+            if (teams) {
+                teams.split(',').forEach(t => {
+                    let opt = document.createElement('option');
+                    opt.value = t.trim(); opt.innerText = t.trim();
+                    teamSelect.appendChild(opt);
+                });
             }
         });
 
-        // Buzz Action
+        // 2. Sync Lock Status & Penalty Logic
+        onValue(ref(db, 'settings/locked'), (snapshot) => {
+            isLocked = snapshot.val();
+            if (!penaltyActive) {
+                updateBuzzerUI();
+            }
+        });
+
+        function updateBuzzerUI() {
+            if (isLocked) {
+                buzzerBtn.classList.remove('unlocked', 'buzzed');
+                buzzerBtn.disabled = false; // Keep enabled to catch false starts!
+                buzzerBtn.innerText = "LOCKED";
+                statusText.innerText = "Don't touch yet!";
+            } else {
+                buzzerBtn.classList.add('unlocked');
+                buzzerBtn.innerText = "BUZZ!";
+                statusText.innerText = "GO GO GO!";
+            }
+        }
+
+        // 3. Handle Clicks (Buzz vs Penalty)
         buzzerBtn.onclick = () => {
             const name = document.getElementById('username').value.trim();
-            if (!name) {
-                alert("Please enter your name first!");
-                return;
-            }
+            const team = teamSelect.value;
+            if (!name || !team) return alert("Enter name and select team!");
 
+            if (isLocked) {
+                applyPenalty();
+            } else {
+                sendBuzz(name, team);
+            }
+        };
+
+        function applyPenalty() {
+            penaltyActive = true;
+            buzzerBtn.disabled = true;
+            buzzerBtn.classList.add('penalty');
+            let timeLeft = 10;
+            
+            const timer = setInterval(() => {
+                buzzerBtn.innerText = `PENALTY: ${timeLeft}s`;
+                timeLeft--;
+                if (timeLeft < 0) {
+                    clearInterval(timer);
+                    penaltyActive = false;
+                    buzzerBtn.classList.remove('penalty');
+                    updateBuzzerUI();
+                }
+            }, 1000);
+        }
+
+        function sendBuzz(name, team) {
             set(ref(db, 'buzzes/' + name), {
+                team: team,
                 timestamp: serverTimestamp()
             }).then(() => {
-                buzzerBtn.classList.remove('unlocked');
                 buzzerBtn.classList.add('buzzed');
                 buzzerBtn.disabled = true;
                 buzzerBtn.innerText = "SENT!";
-                statusText.innerText = "Check the board!";
             });
-        };
+        }
+
+        // 4. Show live results to students
+        onValue(ref(db, 'buzzes/'), (snapshot) => {
+            const data = snapshot.val();
+            const display = document.getElementById('live-results');
+            display.innerHTML = "";
+            if (data) {
+                const sorted = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
+                sorted.forEach(([name, info], index) => {
+                    display.innerHTML += `<div>${index+1}. ${name} (${info.team})</div>`;
+                });
+            }
+        });
     </script>
 </body>
 </html>
