@@ -1,28 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Scoreboard</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #222; color: white; text-align: center; }
-        .winner { font-size: 40px; color: #0f0; margin-bottom: 20px; }
-        ul { list-style: none; padding: 0; font-size: 24px; }
-        li { background: #444; margin: 10px auto; padding: 10px; width: 80%; max-width: 400px; border-radius: 8px; }
-        li:first-child { border: 3px solid gold; background: #555; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; color: white; text-align: center; padding: 20px; }
+        .controls { margin-bottom: 30px; padding: 20px; background: #34495e; border-radius: 15px; }
+        
+        button { 
+            padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; 
+            border: none; border-radius: 10px; margin: 10px; transition: 0.2s;
+        }
+        
+        #lockToggle { background: #27ae60; color: white; width: 250px; }
+        #resetBtn { background: #7f8c8d; color: white; }
+        
+        .winner-box { font-size: 48px; color: #f1c40f; margin: 20px 0; text-shadow: 0 0 10px rgba(241,196,15,0.5); }
+        
+        ul { list-style: none; padding: 0; max-width: 500px; margin: 0 auto; }
+        li { 
+            background: #34495e; margin: 10px; padding: 15px; border-radius: 8px; 
+            display: flex; justify-content: space-between; font-size: 22px;
+        }
+        li:first-child { border: 2px solid #f1c40f; background: #4b6584; }
+        .rank { font-weight: bold; color: #bdc3c7; }
     </style>
 </head>
 <body>
-    <h1>Who Buzzed First?</h1>
-    <div id="display">Waiting for buzzes...</div>
-    <ul id="list"></ul>
-    <br>
-    <button id="clear">Reset Buzzer</button>
+
+    <h1>Buzzer Control Room</h1>
+
+    <div class="controls">
+        <button id="lockToggle">UNLOCK BUZZERS</button>
+        <button id="resetBtn">RESET ALL</button>
+    </div>
+
+    <div id="winner-display" class="winner-box">Waiting for buzzes...</div>
+    <ul id="buzzer-list"></ul>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // PASTE THE SAME FIREBASE CONFIG BLOCK BELOW
+        // --- PASTE YOUR CONFIG BELOW ---
         const firebaseConfig = {
         apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
         authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
@@ -31,32 +52,54 @@
         messagingSenderId: "95871964596",
         appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
         };
+        // -------------------------------
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        
+        const lockRef = ref(db, 'settings/locked');
         const buzzRef = ref(db, 'buzzes/');
+        let isLocked = true;
 
+        // Toggle Lock/Unlock
+        document.getElementById('lockToggle').onclick = () => {
+            set(lockRef, !isLocked);
+        };
+
+        // Reset Everything
+        document.getElementById('resetBtn').onclick = () => {
+            remove(buzzRef);
+            set(lockRef, true);
+        };
+
+        // Sync Lock Button UI
+        onValue(lockRef, (snapshot) => {
+            isLocked = snapshot.val();
+            const btn = document.getElementById('lockToggle');
+            btn.innerText = isLocked ? "UNLOCK BUZZERS" : "LOCK BUZZERS";
+            btn.style.background = isLocked ? "#27ae60" : "#e74c3c";
+        });
+
+        // Watch the Scoreboard
         onValue(buzzRef, (snapshot) => {
             const data = snapshot.val();
-            const listElement = document.getElementById('list');
-            const display = document.getElementById('display');
+            const listElement = document.getElementById('buzzer-list');
+            const winnerDisplay = document.getElementById('winner-display');
             listElement.innerHTML = "";
 
             if (data) {
-                // Sort by timestamp
                 const sorted = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
-                display.innerHTML = `<div class="winner">Winner: ${sorted[0][0]}!</div>`;
-                sorted.forEach(([name, info]) => {
+                winnerDisplay.innerText = `Winner: ${sorted[0][0]}`;
+                
+                sorted.forEach(([name, info], index) => {
                     const li = document.createElement('li');
-                    li.innerText = name;
+                    li.innerHTML = `<span class="rank">#${index + 1}</span> <span>${name}</span>`;
                     listElement.appendChild(li);
                 });
             } else {
-                display.innerText = "Waiting for buzzes...";
+                winnerDisplay.innerText = "Waiting for buzzes...";
             }
         });
-
-        document.getElementById('clear').onclick = () => remove(buzzRef);
     </script>
 </body>
 </html>

@@ -1,30 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Classroom Buzzer - Student</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Buzzer</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 20px; }
-        #buzzer { 
-            width: 200px; height: 200px; background: red; color: white; 
-            border-radius: 50%; border: 10px solid #800; font-size: 24px; 
-            cursor: pointer; box-shadow: 0 9px #999; margin-top: 20px;
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; margin: 0; overflow: hidden; }
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        
+        input { 
+            padding: 15px; font-size: 18px; width: 80%; max-width: 300px; 
+            border-radius: 10px; border: none; margin-bottom: 20px; outline: none;
         }
-        #buzzer:active { background-color: #d00; box-shadow: 0 5px #666; transform: translateY(4px); }
-        input { padding: 10px; font-size: 18px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #ccc; }
+
+        #buzzer { 
+            width: 250px; height: 250px; border-radius: 50%; border: none;
+            font-size: 28px; font-weight: bold; color: white;
+            transition: all 0.2s ease; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background: #444; cursor: not-allowed; opacity: 0.6;
+        }
+
+        /* State: Unlocked (Ready to buzz) */
+        #buzzer.unlocked { background: #e74c3c; cursor: pointer; opacity: 1; box-shadow: 0 8px #c0392b; }
+        #buzzer.unlocked:active { box-shadow: 0 2px #c0392b; transform: translateY(4px); }
+
+        /* State: Buzzed (Success) */
+        #buzzer.buzzed { background: #2ecc71 !important; box-shadow: 0 0 30px #2ecc71; transform: scale(0.95); }
+        
+        #status-text { margin-top: 20px; font-size: 20px; height: 24px; color: #aaa; }
     </style>
 </head>
 <body>
-    <h1>Classroom Buzzer</h1>
-    <input type="text" id="username" placeholder="Enter your name..." required><br>
-    <button id="buzzer">BUZZ!</button>
-    <p id="status"></p>
+
+    <div class="container">
+        <input type="text" id="username" placeholder="Enter Your Name" maxlength="15">
+        <button id="buzzer" disabled>LOCKED</button>
+        <div id="status-text">Wait for teacher to unlock...</div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // PASTE YOUR FIREBASE CONFIG BLOCK BELOW
+        // --- PASTE YOUR CONFIG BELOW ---
         const firebaseConfig = {
         apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
         authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
@@ -33,19 +51,45 @@
         messagingSenderId: "95871964596",
         appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
         };
+        // -------------------------------
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const buzzerBtn = document.getElementById('buzzer');
+        const statusText = document.getElementById('status-text');
 
-        document.getElementById('buzzer').onclick = function() {
-            const name = document.getElementById('username').value;
-            if (!name) { alert("Please enter your name!"); return; }
+        // Listen for Lock/Unlock from Teacher
+        onValue(ref(db, 'settings/locked'), (snapshot) => {
+            const isLocked = snapshot.val();
+            if (isLocked) {
+                buzzerBtn.classList.remove('unlocked', 'buzzed');
+                buzzerBtn.disabled = true;
+                buzzerBtn.innerText = "LOCKED";
+                statusText.innerText = "Wait for teacher to unlock...";
+            } else {
+                buzzerBtn.classList.add('unlocked');
+                buzzerBtn.disabled = false;
+                buzzerBtn.innerText = "BUZZ!";
+                statusText.innerText = "READY!";
+            }
+        });
+
+        // Buzz Action
+        buzzerBtn.onclick = () => {
+            const name = document.getElementById('username').value.trim();
+            if (!name) {
+                alert("Please enter your name first!");
+                return;
+            }
 
             set(ref(db, 'buzzes/' + name), {
-                timestamp: serverTimestamp(),
-                timeString: new Date().toLocaleTimeString()
+                timestamp: serverTimestamp()
             }).then(() => {
-                document.getElementById('status').innerText = "Sent! Check the teacher's screen.";
+                buzzerBtn.classList.remove('unlocked');
+                buzzerBtn.classList.add('buzzed');
+                buzzerBtn.disabled = true;
+                buzzerBtn.innerText = "SENT!";
+                statusText.innerText = "Check the board!";
             });
         };
     </script>
