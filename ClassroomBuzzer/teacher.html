@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Scoreboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #222; color: white; text-align: center; }
+        .winner { font-size: 40px; color: #0f0; margin-bottom: 20px; }
+        ul { list-style: none; padding: 0; font-size: 24px; }
+        li { background: #444; margin: 10px auto; padding: 10px; width: 80%; max-width: 400px; border-radius: 8px; }
+        li:first-child { border: 3px solid gold; background: #555; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Who Buzzed First?</h1>
+    <div id="display">Waiting for buzzes...</div>
+    <ul id="list"></ul>
+    <br>
+    <button id="clear">Reset Buzzer</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // PASTE THE SAME FIREBASE CONFIG BLOCK BELOW
+        const firebaseConfig = {
+        apiKey: "AIzaSyCr_AmYU0vZtpi-QS9Mu-RfFmSMrhISJTk",
+        authDomain: "classroombuzzer-cfc2e.firebaseapp.com",
+        projectId: "classroombuzzer-cfc2e",
+        storageBucket: "classroombuzzer-cfc2e.firebasestorage.app",
+        messagingSenderId: "95871964596",
+        appId: "1:95871964596:web:fccd25f2eb321217ac0ee1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const buzzRef = ref(db, 'buzzes/');
+
+        onValue(buzzRef, (snapshot) => {
+            const data = snapshot.val();
+            const listElement = document.getElementById('list');
+            const display = document.getElementById('display');
+            listElement.innerHTML = "";
+
+            if (data) {
+                // Sort by timestamp
+                const sorted = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
+                display.innerHTML = `<div class="winner">Winner: ${sorted[0][0]}!</div>`;
+                sorted.forEach(([name, info]) => {
+                    const li = document.createElement('li');
+                    li.innerText = name;
+                    listElement.appendChild(li);
+                });
+            } else {
+                display.innerText = "Waiting for buzzes...";
+            }
+        });
+
+        document.getElementById('clear').onclick = () => remove(buzzRef);
+    </script>
+</body>
+</html>

@@ -3,9 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mr. Porter's Repository</title>
+    <title>Student Tool Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" src="home.css">
 </head>
-<body>
-    <a href="AnchorNewsWeather/Forcast.html">Anchor News Weather</a>
+<body class="min-h-screen">
+
+    <!-- Header Section -->
+    <header class="relative overflow-hidden bg-white pb-24 pt-20 shadow-sm">
+        <div class="container mx-auto px-6 text-center relative z-10">
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6">
+                Porter's Tools
+            </h1>
+            <p class="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Your digital gateway to classroom success. Access all your essential tools and resources in one beautiful place.
+            </p>
+        </div>
+        
+        <!-- Decorative Background Elements -->
+        <div class="absolute -top-24 -left-24 w-80 h-80 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-60"></div>
+        <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-60"></div>
+    </header>
+
+    <!-- Main Section: Tool Grid -->
+    <!-- Changed -mt-10 to mt-12 to push cards below header -->
+    <main class="container mx-auto px-6 mt-12 pb-24">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            
+            <!-- Tool: Assignments -->
+            <a href="AnchorNewsWeather/Forcast.html" class="tool-card group glass-card rounded-[2rem] overflow-hidden flex flex-col items-center text-center">
+                <div class="w-full h-44 image-container">
+                    <img src="images/AnchorNewsWeather.png" alt="Assignments" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Anchor News Weather</h3>
+                    <p class="text-sm text-slate-500 mb-6">Heather report tool for Anchor News.</p>
+                    <div class="py-2.5 px-6 bg-indigo-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-200 transition-all group-hover:bg-indigo-700 text-sm">
+                        View Weather
+                    </div>
+                </div>
+            </a>
+
+            <!-- Tool: Gradebook -->
+            <a href="MarioKartStats/index.html" class="tool-card group glass-card rounded-[2rem] overflow-hidden flex flex-col items-center text-center">
+                <div class="w-full h-44 image-container">
+                    <img src="images/MarioKart.avif" alt="Gradebook" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Mario Kart Maker</h3>
+                    <p class="text-sm text-slate-500 mb-6">Check the stats of your carts.</p>
+                    <div class="py-2.5 px-6 bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-100 transition-all group-hover:bg-blue-600 text-sm">
+                        Create Your Kart
+                    </div>
+                </div>
+            </a>
+
+            <!-- Tool: Research Lab -->
+            <a href="#" class="tool-card group glass-card rounded-[2rem] overflow-hidden flex flex-col items-center text-center">
+                <div class="w-full h-44 image-container">
+                    <img src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=400" alt="Lab" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">The Lab</h3>
+                    <p class="text-sm text-slate-500 mb-6">Interactive simulations and research tools.</p>
+                    <div class="py-2.5 px-6 bg-purple-500 text-white rounded-xl font-semibold shadow-lg shadow-purple-100 transition-all group-hover:bg-purple-600 text-sm">
+                        Enter Lab
+                    </div>
+                </div>
+            </a>
+
+            <!-- Tool: Resource Library -->
+            <a href="#" class="tool-card group glass-card rounded-[2rem] overflow-hidden flex flex-col items-center text-center">
+                <div class="w-full h-44 image-container">
+                    <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=400" alt="Library" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">E-Library</h3>
+                    <p class="text-sm text-slate-500 mb-6">Digital textbooks and curated readings.</p>
+                    <div class="py-2.5 px-6 bg-pink-500 text-white rounded-xl font-semibold shadow-lg shadow-pink-100 transition-all group-hover:bg-pink-600 text-sm">
+                        Browse Books
+                    </div>
+                </div>
+            </a>
+
+            <!-- Tool: Calendar -->
+            <a href="#" class="tool-card group glass-card rounded-[2rem] overflow-hidden flex flex-col items-center text-center">
+                <div class="w-full h-44 image-container">
+                    <img src="https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&q=80&w=400" alt="Calendar" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Schedule</h3>
+                    <p class="text-sm text-slate-500 mb-6">Keep track of exams and class events.</p>
+                    <div class="py-2.5 px-6 bg-slate-700 text-white rounded-xl font-semibold shadow-lg shadow-slate-200 transition-all group-hover:bg-slate-900 text-sm">
+                        View Schedule
+                    </div>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 text-center py-12 text-slate-400 text-sm">
+        <div class="container mx-auto px-6">
+            <p class="font-medium text-slate-500 mb-2">&copy; 2026 Ammon Porter</p>
+        </div>
+    </footer>
+
 </body>
 </html>
